@@ -35,6 +35,11 @@ func TestControlString(t *testing.T) {
 	runControlTest(t, NewControlString("x", false, ""))
 }
 
+func TestControlTest(t *testing.T) {
+	runControlTest(t, NewControlTransactionSpecification(""))
+	runControlTest(t, NewControlTransactionSpecification("x"))
+}
+
 func runControlTest(t *testing.T, originalControl Control) {
 	header := ""
 	if callerpc, _, line, ok := runtime.Caller(1); ok {
@@ -98,6 +103,11 @@ func TestDescribeControlString(t *testing.T) {
 	runAddControlDescriptions(t, NewControlString("x", true, ""), "Control Type ()", "Criticality")
 	runAddControlDescriptions(t, NewControlString("x", false, "y"), "Control Type ()", "Control Value")
 	runAddControlDescriptions(t, NewControlString("x", false, ""), "Control Type ()")
+}
+
+func TestDescribeControlTransactionSpecification(t *testing.T) {
+	runAddControlDescriptions(t, NewControlTransactionSpecification(""), "Control Type (Transaction Specification)", "Criticality", "Control Value")
+	runAddControlDescriptions(t, NewControlTransactionSpecification("x"), "Control Type (Transaction Specification)", "Criticality", "Control Value")
 }
 
 func runAddControlDescriptions(t *testing.T, originalControl Control, childDescriptions ...string) {

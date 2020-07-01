@@ -18,6 +18,8 @@ const (
 	ControlTypeVChuPasswordWarning = "2.16.840.1.113730.3.4.5"
 	// ControlTypeManageDsaIT - https://tools.ietf.org/html/rfc3296
 	ControlTypeManageDsaIT = "2.16.840.1.113730.3.4.2"
+	// ControlTypeTransactionSpecification - https://tools.ietf.org/html/rfc5805
+	ControlTypeTransactionSpecification = "1.3.6.1.1.21.2"
 
 	// ControlTypeMicrosoftNotification - https://msdn.microsoft.com/en-us/library/aa366983(v=vs.85).aspx
 	ControlTypeMicrosoftNotification = "1.2.840.113556.1.4.528"
@@ -27,11 +29,12 @@ const (
 
 // ControlTypeMap maps controls to text descriptions
 var ControlTypeMap = map[string]string{
-	ControlTypePaging:                "Paging",
-	ControlTypeBeheraPasswordPolicy:  "Password Policy - Behera Draft",
-	ControlTypeManageDsaIT:           "Manage DSA IT",
-	ControlTypeMicrosoftNotification: "Change Notification - Microsoft",
-	ControlTypeMicrosoftShowDeleted:  "Show Deleted Objects - Microsoft",
+	ControlTypePaging:                   "Paging",
+	ControlTypeBeheraPasswordPolicy:     "Password Policy - Behera Draft",
+	ControlTypeManageDsaIT:              "Manage DSA IT",
+	ControlTypeTransactionSpecification: "Transaction Specification",
+	ControlTypeMicrosoftNotification:    "Change Notification - Microsoft",
+	ControlTypeMicrosoftShowDeleted:     "Show Deleted Objects - Microsoft",
 }
 
 // Control defines an interface controls provide to encode and describe themselves
@@ -247,6 +250,41 @@ func NewControlManageDsaIT(Criticality bool) *ControlManageDsaIT {
 	return &ControlManageDsaIT{Criticality: Criticality}
 }
 
+// ControlTransactionSpecification implements the control described in https://tools.ietf.org/html/rfc5805
+type ControlTransactionSpecification struct {
+	TransactionId string
+}
+
+// GetControlType returns the OID
+func (c *ControlTransactionSpecification) GetControlType() string {
+	return ControlTypeTransactionSpecification
+}
+
+// Encode returns the ber packet representation
+func (c *ControlTransactionSpecification) Encode() *ber.Packet {
+	packet := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "Control")
+	packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, ControlTypeTransactionSpecification, "Control Type ("+ControlTypeMap[ControlTypeManageDsaIT]+")"))
+	packet.AppendChild(ber.NewBoolean(ber.ClassUniversal, ber.TypePrimitive, ber.TagBoolean, true, "Criticality"))
+	packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, c.TransactionId, "Control Value"))
+	return packet
+}
+
+// String returns a human-readable description
+func (c *ControlTransactionSpecification) String() string {
+	return fmt.Sprintf(
+		"Control Type: %s (%q)  TransactionId: %s",
+		ControlTypeMap[ControlTypeTransactionSpecification],
+		ControlTypeTransactionSpecification,
+		c.TransactionId)
+}
+
+// NewControlManageDsaIT returns a ControlManageDsaIT control
+func NewControlTransactionSpecification(transactionId string) *ControlTransactionSpecification {
+	return &ControlTransactionSpecification{
+		TransactionId: transactionId,
+	}
+}
+
 // ControlMicrosoftNotification implements the control described in https://msdn.microsoft.com/en-us/library/aa366983(v=vs.85).aspx
 type ControlMicrosoftNotification struct{}
 
@@ -456,6 +494,12 @@ func DecodeControl(packet *ber.Packet) (Control, error) {
 		return NewControlMicrosoftNotification(), nil
 	case ControlTypeMicrosoftShowDeleted:
 		return NewControlMicrosoftShowDeleted(), nil
+	case ControlTypeTransactionSpecification:
+		c := new(ControlTransactionSpecification)
+		if value != nil {
+			c.TransactionId = value.Value.(string)
+		}
+		return c, nil
 	default:
 		c := new(ControlString)
 		c.ControlType = ControlType
