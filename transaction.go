@@ -46,10 +46,15 @@ func (l *Conn) StartTransaction() (string, error) {
 		return "", err
 	}
 
-	extendedResponse := packet.Children[1] //extendedResponse := packet.Children[1]
+	extendedResponse := packet.Children[1]
 	for _, child := range extendedResponse.Children {
 		if child.Tag == 11 {
-			return child.Value.(string), nil
+			startTransactionResponseValue := ber.DecodePacket(child.Data.Bytes())
+			if startTransactionResponseValue == nil {
+				return "", nil
+			} else {
+				return startTransactionResponseValue.Value.(string), nil
+			}
 		}
 	}
 	return "", &Error{
